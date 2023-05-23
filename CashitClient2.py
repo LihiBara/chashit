@@ -11,15 +11,7 @@ import time
 from tkinter import filedialog
 import base64
 import config
-from cryptography.fernet import Fernet
-import base64
-import math
-#from Crypto.Cipher import AES
 
-# AES key must be either 16, 24, or 32 bytes long
-COMMON_ENCRYPTION_KEY = 'asdjk@15r32r1234asdsaeqwe314SEFT'
-# Make sure the initialization vector is 16 bytes
-COMMON_16_BYTE_IV_FOR_AES = 'IVIVIVIVIVIVIVIV'
 """
 to do : 
 1. encrypt  password  in connection amd in data base
@@ -44,61 +36,13 @@ class CashitClient:
     def connect(self):
         self.client.connect((self.host, self.port))
 
-    def get_common_cipher(self):
-        return AES.new(COMMON_ENCRYPTION_KEY,
-                       AES.MODE_CBC,
-                       COMMON_16_BYTE_IV_FOR_AES)
-
-    def encrypt_with_common_cipher(self, cleartext):
-        common_cipher = get_common_cipher()
-        cleartext_length = len(cleartext)
-        next_multiple_of_16 = 16 * math.ceil(cleartext_length / 16)
-        padded_cleartext = cleartext.rjust(next_multiple_of_16)
-        raw_ciphertext = common_cipher.encrypt(padded_cleartext)
-        return base64.b64encode(raw_ciphertext).decode('utf-8')
-    def decrypt2(self,json):
-        common_cipher = get_common_cipher()
-        raw_ciphertext = base64.b64decode(ciphertext)
-        decrypted_message_with_padding = common_cipher.decrypt(raw_ciphertext)
-        return decrypted_message_with_padding.decode('utf-8').strip()
-
-    def encrypte_json(self, json):
-
-        # this generates a key and opens a file 'key.key' and writes the key there
-        print("Started")
-        key = Fernet.generate_key()
-        with open('key.key', 'wb') as file:
-            file.write(key)
-        print("1111111111")
-        data = json
-        print("2222222")
-        # this encrypts the data read from your json and stores it in 'encrypted'
-        fernet = Fernet(key)
-        print("33333333333")
-        encrypted_json = fernet.encrypt(data)
-        print("444444444444")
-        print(encrypted_json)
-        return encrypted_json
-
-    def decrypt_json(self, json):
-        with open('key.key', 'rb') as file:
-            key = file.read()
-        data = json
-        # this encrypts the data read from your json and stores it in 'encrypted'
-        fernet = Fernet(key)
-        decrypted_json = fernet.decrypt(data)
-        print(decrypted_json)
-        return decrypted_json
-
     def send_command(self, command, *args):
         self.lock.acquire()
         response = "lihi"
         try:
-            print("Sending JSON data :) :", json.dumps((command, args)))
-            #encryped = self.encrypte_json(json.dumps((command, args)))
-            #print("lihi ahbla: ", json.dumps(encryped))
+            print("Sending JSON data:", json.dumps((command, args)))
             self.client.send(json.dumps((command, args)).encode('utf-8'))
-            response =(json.loads(self.client.recv(20000).decode('utf-8')))
+            response = json.loads(self.client.recv(20000).decode('utf-8'))
             #response = self.special
             #self.special.pop
             print(response)
@@ -122,32 +66,20 @@ class CashitClient:
 
 
 def listen_server(client, event, special, regular, lock):
+
+
         while not event.is_set():
             #lock.acquire()
             try:
                 #
-                #solamit = ''
-                #plen = ''
-                #while solamit != '#':
-                #    solamit = json.loads(client.recv(1).decode('utf-8'))
-                #    if solamit != '#':
-                #        plen += solamit
-                #    plen = int(plen)
-                data = json.loads(client.recv(20000).decode('utf-8'))
-                print(data)
-                if data:
-                    permission_window = Toplevel(client.root)
-
-                    client.permission_label = Label(permission_window, text=data+"yes/no")
-                    client.permission_label.pack()
-                    client.permission_entry = Entry(permission_window)
-                    client.permission_entry.pack()
-                    if client.permission_entry.get == "yes":
-                        True
-                    elif client.permission_entry.get == "no":
-                        return False
-                    else:
-                        print("answer with yes/no")
+#                solamit = ''
+#               plen = ''
+ #               while solamit != '#':
+ #                   solamit = json.loads(client.recv(1).decode('utf-8'))
+  #                  if solamit != '#':
+   #                     plen += solamit
+    #                plen = int(plen)
+                    data = json.loads(client.recv(20000).decode('utf-8'))
             finally:
                 #lock.release()
                 #לעשות טיפול של ההודעה ולשים אותה בGUI במקרה ואכן התקבלה הודעה

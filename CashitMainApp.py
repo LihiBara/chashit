@@ -18,9 +18,10 @@ from CashitDB import CashitDB
 
 
 class MainApp:
-    def __init__(self, username):
+    def __init__(self, username, client):
         self.username = username
-        self.client = CashitClient()
+        #self.client = CashitClient()
+        self.client = client
         self.root = tk.Tk()
         self.root.title("cashit Main App")
         self.root.geometry("400x400")
@@ -44,6 +45,45 @@ class MainApp:
         self.mymoney_button = ttk.Button(self.menu_frame, text="my money", command=self.open_mymoney)
         self.mymoney_button.grid(row=0, column=2, padx=5)
 
+        self.mymoney_button = ttk.Button(self.menu_frame, text="charge money", command=self.open_chargemoney)
+        self.mymoney_button.grid(row=0, column=3, padx=5)
+
+
+    def open_chargemoney(self):
+        chargemoney_window = Toplevel(self.root)
+        chargemoney_app = CashitRecieve(chargemoney_window)
+
+        self.moneycharge_label = Label(chargemoney_window, text="Enter money amount to charge")
+        self.moneycharge_label.pack()
+        self.moneycharge_entry = Entry(chargemoney_window)
+        self.moneycharge_entry.pack()
+
+        self.cardnumber_label = Label(chargemoney_window, text="Enter card number")
+        self.cardnumber_label.pack()
+        self.cardnumber_entry = Entry(chargemoney_window)
+        self.cardnumber_entry.pack()
+
+        self.valid_label = Label(chargemoney_window, text="Enter validation date")
+        self.valid_label.pack()
+        self.valid_entry = Entry(chargemoney_window)
+        self.valid_entry.pack()
+
+        self.cvv_label = Label(chargemoney_window, text="Enter CVV")
+        self.cvv_label.pack()
+        self.cvv_entry = Entry(chargemoney_window)
+        self.cvv_entry.pack()
+
+        self.submit_button = Button(chargemoney_window, text="Submit", command=self.submit_pass)
+        self.submit_button.pack(pady=5)
+
+        current_money = int(get_my_money(self.username))
+
+
+
+        #לקרוא לפונקציה בסרבר בנק שתכניס כסף לחשבון
+
+        chargemoney_window.grab_set()
+
     def open_passmoney(self):
         recieve_window = Toplevel(self.root)
         recieve_app = CashitRecieve(recieve_window)
@@ -54,9 +94,6 @@ class MainApp:
         self.submit_button.pack(pady=5)
 
         recieve_window.grab_set()
-
-
-
 
     def open_recieve(self):
         self.recieve_window = Toplevel(self.root)
@@ -82,12 +119,12 @@ class MainApp:
     def submit_receive(self):
         self.second_user = self.username_entry.get()
         self.amount = self.money_entry.get()
-        #if CashitClient.get_permission(self.CashitClient, self.username, self.amount, self.second_user):
-        set_money(self.username, int(self.amount))
-        set_money(self.second_user, -1 * int(self.amount))
-        #else:
-        #לכתןב הודעה שלא אושר
-        #    pass
+        if self.client.get_permission(self.username, self.amount, self.second_user) == 1:
+            set_money(self.username, int(self.amount))
+            set_money(self.second_user, -1 * int(self.amount))
+        else:
+            #לכתןב הודעה שלא אושר
+            pass
         self.recieve_window.destroy()
 
     def submit_pass(self):
@@ -119,7 +156,7 @@ class CashitPassmoney:
         self.create_widgets()
 
     def create_widgets(self):
-        self.root.title("Profile")
+        self.root.title("Cashit")
         self.root.geometry("400x400")
 
         self.username_label = Label(self.root, text=f"Username: {self.username}")

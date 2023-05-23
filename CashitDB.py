@@ -44,6 +44,13 @@ class CashitDB:
             result = conn.execute(query, (username, password)).fetchone()
             return result is not None
 
+    def user_exist(self, username):
+        conn = self.create_connection()
+        with conn:
+            query = "SELECT * FROM users WHERE username = ?"
+            result = conn.execute(query, username).fetchone()
+            return result is not None
+
     def check_username_exists(self, username):
         conn = self.create_connection()
         with conn:

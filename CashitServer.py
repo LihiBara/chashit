@@ -6,7 +6,7 @@ import os
 import base64
 import simplejson as json
 import config
-
+dict = {}
 
 class CashitServer:
     def __init__(self, host=config.SERVER_HOST_IP, port=config.SERVER_PORT):
@@ -16,7 +16,7 @@ class CashitServer:
         self.Cashit_db = CashitDB()
         self.Cashit_db.create_tables()
 
-    def handle_client(self, conn, addr, conn2):
+    def handle_client(self, conn, addr):
         print(f"[SERVER] New connection from {addr}.")
 
         while True:
@@ -29,7 +29,15 @@ class CashitServer:
 
             if command == "validate":
                 username, password = args
+                dict[username] = conn
+                print(dict)
                 response = self.Cashit_db.validate_user(username, password)
+
+            elif command == "UserExist":
+                username = args
+                response = self.Cashit_db.user_exist(username)
+                plen = len(response)
+                response = str(plen) + '#' + response
 
             elif command == "SaveSignupDetails":
                 username, password, email, id, sum = args
@@ -41,11 +49,14 @@ class CashitServer:
                 user_data = self.Cashit_db.get_user(username)
                 user_data = user_data
                 response = user_data
+                plen = len(response)
+                response = str(plen) + '#' + response
 
             elif command == "permission":
                 username, amount, second_user = args
-                conn2, addr2 = self.server.accept()
-
+                socket = dict[second_user]
+                socket.send(json.dumps(f"do you agree to recieve {amount} money from {username}").encode('utf-8'))
+                response = json.loads(socket.recv(200000000).decode('utf-8'))
 
             conn.send(json.dumps(response).encode('utf-8'))
         print(f"[SERVER] Connection with {addr} closed.")
@@ -58,7 +69,7 @@ class CashitServer:
 
         while True:
             conn, addr = self.server.accept()
-            thread = threading.Thread(target=self.handle_client, args=(conn, addr, conn2, addr2))
+            thread = threading.Thread(target=self.handle_client, args=(conn, addr))
             thread.start()
             print(f"[SERVER] Active connections: {threading.active_count() - 1}")
 
