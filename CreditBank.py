@@ -1,13 +1,11 @@
 from CashitDB import CashitDB
 
-def charging(username, amount , current_money):
 
+def charging(username, amount, current_money):
+    amount = int(amount)
     updated_money = current_money + amount
 
     # Validate that user is existed in DB
-
-    submit_button = Button(self.recieve_window, text="Submit", command=self.submit_receive)
-     submit_button.pack(pady=5)
 
     conn = CashitDB().create_connection()
     with conn:
@@ -17,3 +15,5 @@ def charging(username, amount , current_money):
         # return result
 
     conn.close()
+
+

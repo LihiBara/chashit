@@ -1,4 +1,4 @@
- #file name CashitClient.py
+# file name CashitClient.py
 import os.path
 import socket
 import json
@@ -11,6 +11,12 @@ import time
 from tkinter import filedialog
 import base64
 import config
+from cryptography.fernet import Fernet
+import base64
+import math
+import io
+import hashlib
+
 
 """
 to do : 
@@ -27,24 +33,33 @@ class CashitClient:
         self.port = port
         self.special = []
         self.regular = []
+        with io.open("key.key", mode='r') as file:
+            # Write content to the file
+            key = file.read()
+        self.fernet = Fernet(key)
         self.lock = threading.Lock()
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.event = threading.Event()
         self.thread5sec = threading.Thread(target=listen_server,
-                                           args=(self.client, self.event, self.special, self.regular, self.lock))
+                                           args=(self.fernet, self.client, self.event, self.special, self.regular, self.lock))
 
     def connect(self):
         self.client.connect((self.host, self.port))
+
 
     def send_command(self, command, *args):
         self.lock.acquire()
         response = "lihi"
         try:
-            print("Sending JSON data:", json.dumps((command, args)))
-            self.client.send(json.dumps((command, args)).encode('utf-8'))
-            response = json.loads(self.client.recv(20000).decode('utf-8'))
-            #response = self.special
-            #self.special.pop
+            print("Sending JSON data :) :", json.dumps((command, args)))
+            # encryped = self.encrypte_json(json.dumps((command, args)))
+            # print("lihi ahbla: ", json.dumps(encryped))
+            encryped = self.fernet.encrypt((json.dumps((command, args))).encode('utf-8'))
+            self.client.send(encryped)
+
+            response = json.loads(self.fernet.decrypt(self.client.recv(20000).decode('utf-8')))
+            # response = self.special
+            # self.special.pop
             print(response)
         except socket.error as err:
             print(str(err))
@@ -65,26 +80,40 @@ class CashitClient:
         self.client.close()
 
 
-def listen_server(client, event, special, regular, lock):
+def listen_server(fernet, client, event, special, regular, lock):
+    while not event.is_set():
+        # lock.acquire()
+        try:
+            #
+            # solamit = ''
+            # plen = ''
+            # while solamit != '#':
+            #    solamit = json.loads(client.recv(1).decode('utf-8'))
+            #    if solamit != '#':
+            #        plen += solamit
+            #    plen = int(plen)
+
+            data = json.loads(fernet.decrypt(client.recv(20000)).decode('utf-8'))
+            print("1 data: ", data)
+            if data:
+                pass
 
 
-        while not event.is_set():
-            #lock.acquire()
-            try:
-                #
-#                solamit = ''
-#               plen = ''
- #               while solamit != '#':
- #                   solamit = json.loads(client.recv(1).decode('utf-8'))
-  #                  if solamit != '#':
-   #                     plen += solamit
-    #                plen = int(plen)
-                    data = json.loads(client.recv(20000).decode('utf-8'))
-            finally:
-                #lock.release()
-                #לעשות טיפול של ההודעה ולשים אותה בGUI במקרה ואכן התקבלה הודעה
-                time.sleep(5)
-
+                #permission_window = Toplevel(client.root)
+                # client.permission_label = Label(permission_window, text=data + "yes/no")
+                # client.permission_label.pack()
+                # client.permission_entry = Entry(permission_window)
+                # client.permission_entry.pack()
+                # if client.permission_entry.get == "yes":
+                #     True
+                # elif client.permission_entry.get == "no":
+                #     return False
+                # else:
+                #     print("answer with yes/no")
+        finally:
+            # lock.release()
+            # לעשות טיפול של ההודעה ולשים אותה בGUI במקרה ואכן התקבלה הודעה
+            time.sleep(5)
 
 
 class CashitLogin:
@@ -96,7 +125,7 @@ class CashitLogin:
         self.root.geometry("400x400")
         self.logo_img = Image.open(os.path.join(config.LOGO_FILE_PATH, "logo1.png"))
         self.logo_photo = ImageTk.PhotoImage(self.logo_img)
-
+        self.root.configure(bg='light green')
         self.create_widgets()
 
     def create_widgets(self):
@@ -122,6 +151,7 @@ class CashitLogin:
     def sign_in(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+        # hashed_password = hashlib.sha256(password.encode()).hexdigest
 
         if self.client.send_command("validate", username, password):
             messagebox.showinfo("Success", "Logged in successfully.")
@@ -132,10 +162,9 @@ class CashitLogin:
         else:
             messagebox.showerror("Error", "Invalid username or password.")
 
-
     def open_sign_up(self):
         self.sign_up_window = Toplevel(self.root)
-        sign_up_app = CashitSignUp(self.sign_up_window, self.client,self.root)
+        sign_up_app = CashitSignUp(self.sign_up_window, self.client, self.root)
         self.sign_up_window.grab_set()
 
     def run(self):
@@ -143,20 +172,21 @@ class CashitLogin:
 
 
 class CashitSignUp:
-    def __init__(self, root, client,login ):
+    def __init__(self, root, client, login):
         self.root = root
         self.client = client
 
         self.root.title("cashit Sign Up")
         self.root.geometry("400x400")
-        self.login=login
+        self.login = login
+        self.root.configure(bg='light green')
 
         self.create_widgets()
 
     def create_widgets(self):
         self.username_label = Label(self.root, text="Username:")
         self.username_label.pack()
-        self.username_entry= Entry(self.root)
+        self.username_entry = Entry(self.root)
         self.username_entry.pack()
 
         self.password_label = Label(self.root, text="Password:")
@@ -164,10 +194,10 @@ class CashitSignUp:
         self.password_entry = Entry(self.root, show="*")
         self.password_entry.pack()
 
-        self. email_label = Label(self.root, text="email:")
-        self. email_label.pack()
-        self. email_entry = Entry(self.root)
-        self. email_entry.pack()
+        self.email_label = Label(self.root, text="email:")
+        self.email_label.pack()
+        self.email_entry = Entry(self.root)
+        self.email_entry.pack()
 
         self.id_label = Label(self.root, text="id:")
         self.id_label.pack()
@@ -185,6 +215,7 @@ class CashitSignUp:
     def submit_sign_up(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+        # hashed_password = hashlib.sha256(password.encode()).hexdigest
         email = self.email_entry.get()
         id = self.id_entry.get()
         sum = self.sum_entry.get()

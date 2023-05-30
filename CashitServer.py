@@ -6,6 +6,10 @@ import os
 import base64
 import simplejson as json
 import config
+import hashlib
+import io
+from cryptography.fernet import Fernet
+
 dict = {}
 
 class CashitServer:
@@ -15,23 +19,33 @@ class CashitServer:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.Cashit_db = CashitDB()
         self.Cashit_db.create_tables()
+        self.key = Fernet.generate_key()
+        with io.open("key.key", mode='wb') as file:
+            # Write content to the file
+            file.write(self.key)
+
+        self.fernet = Fernet(self.key)
 
     def handle_client(self, conn, addr):
         print(f"[SERVER] New connection from {addr}.")
 
         while True:
-            data = conn.recv(config.PACKET_SIZE).decode('utf-8')
+            print("here")
+            data = self.fernet.decrypt(conn.recv(config.PACKET_SIZE)).decode('utf-8')
+            print("data", data)
             if not data:
                 break
 
             command, args = json.loads(data)
+            command = command[len(config.COMMANDPRO):]
             print(f"[SERVER] Received command '{command}' with args {args} from {addr}.")
-
             if command == "validate":
                 username, password = args
                 dict[username] = conn
                 print(dict)
                 response = self.Cashit_db.validate_user(username, password)
+                #plen = len(response)
+                #response = f"{plen}#{response}"
 
             elif command == "UserExist":
                 username = args
@@ -55,10 +69,13 @@ class CashitServer:
             elif command == "permission":
                 username, amount, second_user = args
                 socket = dict[second_user]
-                socket.send(json.dumps(f"do you agree to recieve {amount} money from {username}").encode('utf-8'))
-                response = json.loads(socket.recv(200000000).decode('utf-8'))
 
-            conn.send(json.dumps(response).encode('utf-8'))
+                encryped = self.fernet.encrypt(json.dumps(f"do you agree to recieve {amount} money from {username}").encode('utf-8'))
+                socket.send(encryped)
+                response = json.loads(self.fernet.decrypt(socket.recv(200000000)).decode('utf-8'))
+
+            encryped_response = self.fernet.encrypt(json.dumps(response).encode('utf-8'))
+            conn.send(encryped_response)
         print(f"[SERVER] Connection with {addr} closed.")
         conn.close()
 
@@ -69,6 +86,7 @@ class CashitServer:
 
         while True:
             conn, addr = self.server.accept()
+            print("conn, addr", conn, addr)
             thread = threading.Thread(target=self.handle_client, args=(conn, addr))
             thread.start()
             print(f"[SERVER] Active connections: {threading.active_count() - 1}")

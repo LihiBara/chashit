@@ -1,5 +1,7 @@
 from PIL import Image, ImageTk
 import base64
+
+import CreditBank
 from CashitClient import CashitClient
 import binascii
 from tkinter import filedialog
@@ -19,6 +21,7 @@ from CashitDB import CashitDB
 
 class MainApp:
     def __init__(self, username, client):
+        self.submitmoney_button = None
         self.username = username
         #self.client = CashitClient()
         self.client = client
@@ -45,9 +48,8 @@ class MainApp:
         self.mymoney_button = ttk.Button(self.menu_frame, text="my money", command=self.open_mymoney)
         self.mymoney_button.grid(row=0, column=2, padx=5)
 
-        self.mymoney_button = ttk.Button(self.menu_frame, text="charge money", command=self.open_chargemoney)
-        self.mymoney_button.grid(row=0, column=3, padx=5)
-
+        self.chargemoney_button = ttk.Button(self.menu_frame, text="charge money", command=self.open_chargemoney)
+        self.chargemoney_button.grid(row=0, column=3, padx=5)
 
     def open_chargemoney(self):
         chargemoney_window = Toplevel(self.root)
@@ -73,27 +75,24 @@ class MainApp:
         self.cvv_entry = Entry(chargemoney_window)
         self.cvv_entry.pack()
 
-        self.submit_button = Button(chargemoney_window, text="Submit", command=self.submit_pass)
-        self.submit_button.pack(pady=5)
-
         current_money = int(get_my_money(self.username))
 
-
-
-        #לקרוא לפונקציה בסרבר בנק שתכניס כסף לחשבון
+        self.submitmoney_button = Button(chargemoney_window, text="Submit",
+                                         command=lambda: CreditBank.charging(self.username, self.moneycharge_entry.get(), current_money))
+        self.submitmoney_button.pack(pady=5)
 
         chargemoney_window.grab_set()
 
     def open_passmoney(self):
-        recieve_window = Toplevel(self.root)
-        recieve_app = CashitRecieve(recieve_window)
+        self.passmoney_window = Toplevel(self.root)
+        passmoney_app = CashitRecieve(self.passmoney_window)
 
-        self.on_click(self.username, recieve_window, "Enter user to pass money :")
+        self.on_click(self.username, self.passmoney_window, "Enter user to pass money :")
 
-        self.submit_button = Button(recieve_window, text="Submit", command=self.submit_pass)
+        self.submit_button = Button(self.passmoney_window, text="Submit", command=self.submit_pass)
         self.submit_button.pack(pady=5)
 
-        recieve_window.grab_set()
+        self.passmoney_window.grab_set()
 
     def open_recieve(self):
         self.recieve_window = Toplevel(self.root)
@@ -134,7 +133,7 @@ class MainApp:
         set_money(self.second_user, int(self.amount))
         set_money(self.username, -1 * int(self.amount))
 
-        self.recieve_window.destroy()
+        self.passmoney_window.destroy()
 
     def on_click(self, username, root, txt):
         self.username_label = Label(root, text=txt)

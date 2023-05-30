@@ -8,18 +8,15 @@ from PIL import Image, ImageTk
 import CashitMainApp
 import threading
 import time
+import io
 from tkinter import filedialog
 import base64
 import config
 from cryptography.fernet import Fernet
 import base64
 import math
-#from Crypto.Cipher import AES
+import hashlib
 
-# AES key must be either 16, 24, or 32 bytes long
-COMMON_ENCRYPTION_KEY = 'asdjk@15r32r1234asdsaeqwe314SEFT'
-# Make sure the initialization vector is 16 bytes
-COMMON_16_BYTE_IV_FOR_AES = 'IVIVIVIVIVIVIVIV'
 """
 to do : 
 1. encrypt  password  in connection amd in data base
@@ -30,81 +27,82 @@ to do :
 
 
 class CashitClient:
+
     def __init__(self, host="127.0.0.1", port=8080):
         self.host = host
         self.port = port
         self.special = []
         self.regular = []
+        with io.open("key.key", mode='r') as file:
+            # Write content to the file
+            key = file.read()
+        self.fernet = Fernet(key)
         self.lock = threading.Lock()
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.event = threading.Event()
         self.thread5sec = threading.Thread(target=listen_server,
-                                           args=(self.client, self.event, self.special, self.regular, self.lock))
+                                           args=(self.fernet, self.client, self.event, self.special, self.regular, self.lock))
 
     def connect(self):
         self.client.connect((self.host, self.port))
 
-    def get_common_cipher(self):
-        return AES.new(COMMON_ENCRYPTION_KEY,
-                       AES.MODE_CBC,
-                       COMMON_16_BYTE_IV_FOR_AES)
+    # def encrypt_json_file(file_path, key):
+    #     with open(file_path, 'r') as file:
+    #         data = json.load(file)
+    #
+    #     serialized_data = json.dumps(data).encode('utf-8')
+    #     cipher_suite = Fernet(key)
+    #     encrypted_data = cipher_suite.encrypt(serialized_data)
+    #
+    #     encrypted_file_path = f"{file_path}.encrypted"
+    #     with open(encrypted_file_path, 'wb') as encrypted_file:
+    #         encrypted_file.write(encrypted_data)
+    #
+    #     print(f"JSON file encrypted successfully. Encrypted file saved as {encrypted_file_path}.")
+    # def decrypt_json_file(json, key):
+    #     encrypted_data = json
+    #
+    #     cipher_suite = Fernet(key)
+    #     decrypted_data = cipher_suite.decrypt(encrypted_data)
+    #
+    #     serialized_data = decrypted_data.decode('utf-8')
+    #     data = json.loads(serialized_data)
+    #
+    #     decrypted_file_path = f"{file_path[:-10]}.decrypted.json"  # Remove the '.encrypted' extension
+    #     with open(decrypted_file_path, 'w') as decrypted_file:
+    #         json.dump(data, decrypted_file, indent=4)
+    #
+    #     print(f"JSON file decrypted successfully. Decrypted file saved as {decrypted_file_path}.")
 
-    def encrypt_with_common_cipher(self, cleartext):
-        common_cipher = get_common_cipher()
-        cleartext_length = len(cleartext)
-        next_multiple_of_16 = 16 * math.ceil(cleartext_length / 16)
-        padded_cleartext = cleartext.rjust(next_multiple_of_16)
-        raw_ciphertext = common_cipher.encrypt(padded_cleartext)
-        return base64.b64encode(raw_ciphertext).decode('utf-8')
-    def decrypt2(self,json):
-        common_cipher = get_common_cipher()
-        raw_ciphertext = base64.b64decode(ciphertext)
-        decrypted_message_with_padding = common_cipher.decrypt(raw_ciphertext)
-        return decrypted_message_with_padding.decode('utf-8').strip()
 
-    def encrypte_json(self, json):
-
-        # this generates a key and opens a file 'key.key' and writes the key there
-        print("Started")
-        key = Fernet.generate_key()
-        with open('key.key', 'wb') as file:
-            file.write(key)
-        print("1111111111")
-        data = json
-        print("2222222")
-        # this encrypts the data read from your json and stores it in 'encrypted'
-        fernet = Fernet(key)
-        print("33333333333")
-        encrypted_json = fernet.encrypt(data)
-        print("444444444444")
-        print(encrypted_json)
-        return encrypted_json
-
-    def decrypt_json(self, json):
-        with open('key.key', 'rb') as file:
-            key = file.read()
-        data = json
-        # this encrypts the data read from your json and stores it in 'encrypted'
-        fernet = Fernet(key)
-        decrypted_json = fernet.decrypt(data)
-        print(decrypted_json)
-        return decrypted_json
 
     def send_command(self, command, *args):
         self.lock.acquire()
         response = "lihi"
         try:
             print("Sending JSON data :) :", json.dumps((command, args)))
-            #encryped = self.encrypte_json(json.dumps((command, args)))
-            #print("lihi ahbla: ", json.dumps(encryped))
-            self.client.send(json.dumps((command, args)).encode('utf-8'))
-            response =(json.loads(self.client.recv(20000).decode('utf-8')))
+            command = config.COMMANDPRO +command
+            encryped = self.fernet.encrypt((json.dumps((command, args))).encode('utf-8'))
+            self.client.send(encryped)
+
+            response = json.loads(self.fernet.decrypt(self.client.recv(20000)).decode('utf-8'))
             #response = self.special
             #self.special.pop
             print(response)
+            solamit = ''
+            plen = ''
+            #while solamit:
+            #    while solamit != '#':
+            #        solamit = json.loads(self.client.recv(1).decode('utf-8'))
+            #        plen += solamit
+            #    if json.loads(self.client.recv(1).decode('utf-8'))=="#":
+            #        response = json.loads(self.client.recv(2000).decode('utf-8'))
+            #plen = int(plen)
+            #print(response)
         except socket.error as err:
             print(str(err))
         finally:
+            print("ad matay")
             self.lock.release()
             return response
 
@@ -121,7 +119,7 @@ class CashitClient:
         self.client.close()
 
 
-def listen_server(client, event, special, regular, lock):
+def listen_server(fernet, client, event, special, regular, lock):
         while not event.is_set():
             #lock.acquire()
             try:
@@ -133,8 +131,11 @@ def listen_server(client, event, special, regular, lock):
                 #    if solamit != '#':
                 #        plen += solamit
                 #    plen = int(plen)
-                data = json.loads(client.recv(20000).decode('utf-8'))
-                print(data)
+
+                data = json.loads(fernet.decrypt(client.recv(20000)).decode('utf-8'))
+
+
+                print("1 data: ",data)
                 if data:
                     permission_window = Toplevel(client.root)
 
@@ -164,7 +165,7 @@ class CashitLogin:
         self.root.geometry("400x400")
         self.logo_img = Image.open(os.path.join(config.LOGO_FILE_PATH, "logo1.png"))
         self.logo_photo = ImageTk.PhotoImage(self.logo_img)
-
+        self.root.configure(bg='light green')
         self.create_widgets()
 
     def create_widgets(self):
@@ -190,6 +191,7 @@ class CashitLogin:
     def sign_in(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+        #hashed_password = hashlib.sha256(password.encode()).hexdigest
 
         if self.client.send_command("validate", username, password):
             messagebox.showinfo("Success", "Logged in successfully.")
@@ -218,6 +220,7 @@ class CashitSignUp:
         self.root.title("cashit Sign Up")
         self.root.geometry("400x400")
         self.login=login
+        self.root.configure(bg='light green')
 
         self.create_widgets()
 
@@ -253,6 +256,7 @@ class CashitSignUp:
     def submit_sign_up(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+        #hashed_password = hashlib.sha256(password.encode()).hexdigest
         email = self.email_entry.get()
         id = self.id_entry.get()
         sum = self.sum_entry.get()
