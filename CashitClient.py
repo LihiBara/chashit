@@ -75,7 +75,6 @@ class CashitClient:
     #     print(f"JSON file decrypted successfully. Decrypted file saved as {decrypted_file_path}.")
 
 
-
     def send_command(self, command, *args):
         self.lock.acquire()
         response = "lihi"
