@@ -1,3 +1,8 @@
+"""
+author - lihi
+date   - 29 / 05 / 23
+server
+"""
 #file name CashitServer.py
 import socket
 import threading
@@ -27,6 +32,13 @@ class CashitServer:
         self.fernet = Fernet(self.key)
 
     def handle_client(self, conn, addr):
+        """
+        a function that is connecting to each client, handeling the commands from the
+        clients and decrypting it, returns an answer to them.
+        :param conn:
+        :param addr:
+        :return:
+        """
         print(f"[SERVER] New connection from {addr}.")
 
         while True:
@@ -80,6 +92,10 @@ class CashitServer:
         conn.close()
 
     def start(self):
+        """
+        a function that starts the server and listening to connections from a client by threading
+        :return:
+        """
         self.server.bind((self.host, self.port))
         self.server.listen()
         print(f"[SERVER] Server started on {self.host}:{self.port}.")

@@ -1,3 +1,8 @@
+"""
+author - lihi
+date   - 29 / 05 / 23
+main_app
+"""
 from PIL import Image, ImageTk
 import base64
 
@@ -36,6 +41,10 @@ class MainApp:
         self.create_widgets()
 
     def create_widgets(self):
+        """
+         a function that opens the window of the main page of the function
+        :return:
+        """
         self.menu_frame = ttk.Frame(self.root)
         self.menu_frame.pack(pady=10)
 
@@ -52,6 +61,11 @@ class MainApp:
         self.chargemoney_button.grid(row=0, column=3, padx=5)
 
     def open_chargemoney(self):
+        """
+        a function that opening a window who is responsibale of charging
+        money to the account from the bank
+        :return:
+        """
         chargemoney_window = Toplevel(self.root)
         chargemoney_app = CashitRecieve(chargemoney_window)
 
@@ -84,6 +98,10 @@ class MainApp:
         chargemoney_window.grab_set()
 
     def open_passmoney(self):
+        """
+        a function that opening a window who is responsibale of passing money to another account
+        :return:
+        """
         self.passmoney_window = Toplevel(self.root)
         passmoney_app = CashitRecieve(self.passmoney_window)
 
@@ -95,6 +113,10 @@ class MainApp:
         self.passmoney_window.grab_set()
 
     def open_recieve(self):
+        """
+        a function that opening a window who is responsibale of recieving money to another account
+        :return:
+        """
         self.recieve_window = Toplevel(self.root)
         recieve_app = CashitRecieve(self.recieve_window)
 
@@ -106,6 +128,10 @@ class MainApp:
         self.recieve_window.grab_set()
 
     def open_mymoney(self):
+        """
+        a function that opening a window who is responsibale of showing the money in the account
+        :return:
+        """
         mymoney_window = Toplevel(self.root)
         mymoney_app = CashitMymoney(mymoney_window)
         money = get_my_money(self.username)
@@ -116,6 +142,10 @@ class MainApp:
         mymoney_window.grab_set()
 
     def submit_receive(self):
+        """
+        a function who is responsibale of the money transfer
+        :return:
+        """
         self.second_user = self.username_entry.get()
         self.amount = self.money_entry.get()
         if self.client.get_permission(self.username, self.amount, self.second_user) == 1:
@@ -127,6 +157,10 @@ class MainApp:
         self.recieve_window.destroy()
 
     def submit_pass(self):
+        """
+        a function who is responsibale of the money transfer
+        :return:
+        """
         self.second_user = self.username_entry.get()
         self.amount = self.money_entry.get()
 
@@ -136,6 +170,13 @@ class MainApp:
         self.passmoney_window.destroy()
 
     def on_click(self, username, root, txt):
+        """
+        a function who is responsible for the GUI of the money transfer
+        :param username:
+        :param root:
+        :param txt:
+        :return:
+        """
         self.username_label = Label(root, text=txt)
         self.username_label.pack()
         self.username_entry = Entry(root)
@@ -177,6 +218,11 @@ class CashitMymoney:
 
 
 def get_my_money(username):
+    """
+    a function who gets the money amount from the database by the username
+    :param username:
+    :return:
+    """
     conn = CashitDB().create_connection()
 
     with conn:
@@ -191,7 +237,10 @@ def get_my_money(username):
 
 def set_money(username, amount):
     # print(username)
-
+    """
+    a function who sets the new money amount of each user
+    in the database by the username
+    """
     current_money = int(get_my_money(username))
     updated_money = current_money + amount
 
