@@ -91,6 +91,48 @@ class CashitServer:
         print(f"[SERVER] Connection with {addr} closed.")
         conn.close()
 
+    def get_my_money(self, username):
+        """
+        a function who gets the money amount from the database by the username
+        :param username:
+        :return:
+        """
+        conn = CashitDB().create_connection()
+
+        with conn:
+            query = "SELECT * FROM users WHERE username = ?"
+            result = conn.execute(query, (username,)).fetchone()
+            sum = result[4]
+            # return result
+
+        conn.close()
+        return sum
+
+    def set_money(self, username, amount):
+        # print(username)
+        """
+        a function who sets the new money amount of each user
+        in the database by the username
+        """
+        current_money = int(self.get_my_money(username))
+        updated_money = current_money + amount
+
+        # Validate that user is existed in DB
+
+        if updated_money < 0:
+            raise Exception(f"Sorry, you have {current_money} money, you cant pass {amount} :(")
+
+        conn = CashitDB().create_connection()
+
+        with conn:
+            query = "UPDATE users SET sum = ? WHERE username = ?"
+            result = conn.execute(query, (updated_money, username))
+            conn.commit()
+            # return result
+
+        conn.close()
+        return sum
+
     def start(self):
         """
         a function that starts the server and listening to connections from a client by threading
