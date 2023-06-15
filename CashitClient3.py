@@ -166,7 +166,7 @@ class CashitClient:
         self.client2.send(encryped)
         print(encryped)
 
-    def get_permission(self, username, amount, second_user , transfor_name):
+    def get_permission(self, username, amount, second_user):
         """
         a function that gets a permission for a recieving or passing money from the other client
         throgh the server
@@ -175,7 +175,7 @@ class CashitClient:
         :param second_user:
         :return:
         """
-        per = self.send_command("permission", username, amount, second_user , transfor_name)
+        per = self.send_command("permission", username, amount, second_user)
         return per
 
     def start1(self):
@@ -225,6 +225,7 @@ def listen_server(fernet, client2, event, special, regular, lock):
                 yes_button.pack(pady=5)
                 no_button = Button(permission_window, text="no", command=lambda: permission_declined(client2, fernet))
                 no_button.pack(pady=5)
+                permission_window.grab_set()
                 permission_root.mainloop()
         finally:
             # lock.release()

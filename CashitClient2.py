@@ -1,13 +1,14 @@
 """
 author - lihi
 date   - 29 / 05 / 23
-client2
+client
 """
 # file name CashitClient.py
 import os.path
 import socket
 import json
 from tkinter import *
+import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import CashitMainApp
@@ -40,7 +41,9 @@ class CashitClient:
         :param port:
         """
         self.host = host
+        self.host2 = host
         self.port = port
+        self.port2 = 8082
         self.special = []
         self.regular = []
         with io.open("key.key", mode='r') as file:
@@ -49,59 +52,48 @@ class CashitClient:
         self.fernet = Fernet(key)
         self.lock = threading.Lock()
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.event = threading.Event()
-        self.thread5sec = threading.Thread(target=listen_server,
-                                           args=(
-                                           self.fernet, self.client, self.event, self.special, self.regular, self.lock))
+        #self.thread5sec = threading.Thread(target=listen_server,
+        #                                   args=(
+        #                                   self.fernet, self.client2, self.event, self.special, self.regular, self.lock))
 
     def connect(self):
         """
-        a function that connects to the server
-        :return:
+        Establishes a connection to the server using self.client socket.
         """
-        self.client.connect((self.host, self.port))
+        try:
+            self.client.connect((self.host, self.port))
+            print("Connected to the server.")
+        except socket.error as err:
+            print("Error connecting to the server:", str(err))
 
-    # def encrypt_json_file(file_path, key):
-    #     with open(file_path, 'r') as file:
-    #         data = json.load(file)
-    #
-    #     serialized_data = json.dumps(data).encode('utf-8')
-    #     cipher_suite = Fernet(key)
-    #     encrypted_data = cipher_suite.encrypt(serialized_data)
-    #
-    #     encrypted_file_path = f"{file_path}.encrypted"
-    #     with open(encrypted_file_path, 'wb') as encrypted_file:
-    #         encrypted_file.write(encrypted_data)
-    #
-    #     print(f"JSON file encrypted successfully. Encrypted file saved as {encrypted_file_path}.")
-    # def decrypt_json_file(json, key):
-    #     encrypted_data = json
-    #
-    #     cipher_suite = Fernet(key)
-    #     decrypted_data = cipher_suite.decrypt(encrypted_data)
-    #
-    #     serialized_data = decrypted_data.decode('utf-8')
-    #     data = json.loads(serialized_data)
-    #
-    #     decrypted_file_path = f"{file_path[:-10]}.decrypted.json"  # Remove the '.encrypted' extension
-    #     with open(decrypted_file_path, 'w') as decrypted_file:
-    #         json.dump(data, decrypted_file, indent=4)
-    #
-    #     print(f"JSON file decrypted successfully. Decrypted file saved as {decrypted_file_path}.")
+    def connect_port2(self):
+        """
+        Establishes a connection to the server using self.client2 socket.
+        """
+        try:
+            self.client2.connect((self.host, self.port2))
+            print("Connected to the server (port2).")
+        except socket.error as err:
+            print("Error connecting to the server (port2):", str(err))
+
+    def send_command_validate_port2(self, *args):
+        self.connect_port2()
+        self.send_validate_port2(*args)
+        listen_server(self.fernet, self.client2, self.event, self.special, self.regular, self.lock)
 
     def send_command(self, command, *args):
         """
-        a function that is responsible for sending an encrepted command to the server
+        a function that is responsible for sending the encrypted command to the server
         and recieving the answer from him
         :param command:
         :param args:
         :return:
         """
         self.lock.acquire()
-        response = "lihi"
         try:
             print("Sending JSON data :) :", json.dumps((command, args)))
-            command = config.COMMANDPRO + command
             encryped = self.fernet.encrypt((json.dumps((command, args))).encode('utf-8'))
             self.client.send(encryped)
 
@@ -111,20 +103,68 @@ class CashitClient:
             print(response)
             solamit = ''
             plen = ''
-            # while solamit:
-            #    while solamit != '#':
-            #        solamit = json.loads(self.client.recv(1).decode('utf-8'))
-            #        plen += solamit
-            #    if json.loads(self.client.recv(1).decode('utf-8'))=="#":
-            #        response = json.loads(self.client.recv(2000).decode('utf-8'))
-            # plen = int(plen)
-            # print(response)
+            t = response.split('#')
+            print(t)
+            print(len(t[1]))
+            t[0]= int(t[0])
+            if command == 'validate':
+                self.thread5sec = threading.Thread(target=self.send_command_validate_port2,
+                                                   args=('validate2', *args))
+                self.thread5sec.start()
+            if len(t[1]) == t[0]:
+                return t[1]
+            else:
+                print("no")
         except socket.error as err:
             print(str(err))
         finally:
-            print("ad matay")
             self.lock.release()
-            return response
+            print("4")
+
+    def send_validate_port2(self, command, *args):
+            """
+            a function that is responsible for sending a validate command to the server from the second port
+            and recieving the answer from him
+            :param command:
+            :param args:
+            :return:
+            """
+            self.lock.acquire()
+            try:
+                print("Sending JSON data :) :", json.dumps((command, args)))
+                encryped = self.fernet.encrypt((json.dumps((command, args))).encode('utf-8'))
+                self.client2.send(encryped)
+
+                response = json.loads(self.fernet.decrypt(self.client2.recv(20000)).decode('utf-8'))
+                # response = self.special
+                # self.special.pop
+                print(response)
+
+                solamit = ''
+                plen = ''
+                t = response.split('#')
+                print(t)
+                print(len(t[1]))
+                t[0] = int(t[0])
+                if len(t[1]) == t[0]:
+                    print(t[1])
+                    return t[1]
+                else:
+                    print("no")
+            except socket.error as err:
+                print(str(err))
+            finally:
+                self.lock.release()
+
+    def permission_exepted(self):
+        encryped = self.fernet.encrypt((json.dumps(True)).encode('utf-8'))
+        self.client2.send(encryped)
+        print(encryped)
+
+    def permission_declined(self):
+        encryped = self.fernet.encrypt((json.dumps(False)).encode('utf-8'))
+        self.client2.send(encryped)
+        print(encryped)
 
     def get_permission(self, username, amount, second_user):
         """
@@ -156,7 +196,7 @@ class CashitClient:
         self.client.close()
 
 
-def listen_server(fernet, client, event, special, regular, lock):
+def listen_server(fernet, client2, event, special, regular, lock):
     """
     a function that is listening every 5 seconds to the server and checking if a massage from him recieved
     :param fernet:
@@ -170,40 +210,43 @@ def listen_server(fernet, client, event, special, regular, lock):
     while not event.is_set():
         # lock.acquire()
         try:
-            #
-            # solamit = ''
-            # plen = ''
-            # while solamit != '#':
-            #    solamit = json.loads(client.recv(1).decode('utf-8'))
-            #    if solamit != '#':
-            #        plen += solamit
-            #    plen = int(plen)
 
-            data = json.loads(fernet.decrypt(client.recv(20000)).decode('utf-8'))
-
+            data = json.loads(fernet.decrypt(client2.recv(20000)).decode('utf-8'))
             print("1 data: ", data)
             if data:
-                permission_window = Toplevel(client.root)
-
-                client.permission_label = Label(permission_window, text=data + "yes/no")
-                client.permission_label.pack()
-                client.permission_entry = Entry(permission_window)
-                client.permission_entry.pack()
-                if client.permission_entry.get == "yes":
-                    return True
-                elif client.permission_entry.get == "no":
-                    return False
-                else:
-                    print("answer with yes/no")
+                permission_root = tk.Tk()
+                permission_root.title("cashit permission")
+                permission_root.geometry("300x300")
+                permission_root.configure(bg='light green')
+                permission_window = Toplevel(permission_root)
+                permission_label = Label(permission_window, text=data)
+                permission_label.pack()
+                yes_button = Button(permission_window, text="yes", command=lambda: permission_exepted(client2, fernet))
+                yes_button.pack(pady=5)
+                no_button = Button(permission_window, text="no", command=lambda: permission_declined(client2, fernet))
+                no_button.pack(pady=5)
+                permission_root.mainloop()
         finally:
             # lock.release()
             # לעשות טיפול של ההודעה ולשים אותה בGUI במקרה ואכן התקבלה הודעה
             time.sleep(5)
 
 
+def permission_exepted(client_socket, fernet):
+    encryped = fernet.encrypt((json.dumps(True)).encode('utf-8'))
+    client_socket.send(encryped)
+    print(encryped)
+
+
+def permission_declined(client_socket, fernet):
+    encryped = fernet.encrypt((json.dumps(False)).encode('utf-8'))
+    client_socket.send(encryped)
+    print(encryped)
+
 class CashitLogin:
     def __init__(self):
         self.client = CashitClient()
+        self.client2 = CashitClient()
         self.client.connect()
         self.root = Tk()
         self.root.title("cashit Login")
@@ -246,10 +289,11 @@ class CashitLogin:
         password = self.password_entry.get()
         # hashed_password = hashlib.sha256(password.encode()).hexdigest
 
-        if self.client.send_command("validate", username, password):
+        if self.client.send_command("validate", username, password) == "True":
+            #if self.client2.send_validate_port2("validate2", username, password) == "True":
             messagebox.showinfo("Success", "Logged in successfully.")
             self.root.destroy()
-            self.client.start1()
+            #self.client.start1()
             main_app_window = CashitMainApp.MainApp(username, self.client)
             main_app_window.root.mainloop()
         else:

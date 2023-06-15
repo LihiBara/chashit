@@ -16,12 +16,16 @@ import io
 from cryptography.fernet import Fernet
 
 dict = {}
+dict2 = {}
+
 
 class CashitServer:
     def __init__(self, host=config.SERVER_HOST_IP, port=config.SERVER_PORT):
         self.host = host
         self.port = port
+        self.port2 = config.SERVER_PORT2
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.Cashit_db = CashitDB()
         self.Cashit_db.create_tables()
         self.key = Fernet.generate_key()
@@ -33,7 +37,7 @@ class CashitServer:
 
     def handle_client(self, conn, addr):
         """
-        a function that is connecting to each client, handeling the commands from the
+        a function that is connecting to each client, handling the commands from the
         clients and decrypting it, returns an answer to them.
         :param conn:
         :param addr:
@@ -49,47 +53,78 @@ class CashitServer:
                 break
 
             command, args = json.loads(data)
-            command = command[len(config.COMMANDPRO):]
             print(f"[SERVER] Received command '{command}' with args {args} from {addr}.")
             if command == "validate":
                 username, password = args
                 dict[username] = conn
                 print(dict)
                 response = self.Cashit_db.validate_user(username, password)
-                #plen = len(response)
-                #response = f"{plen}#{response}"
-
+                response = str(response)
+                plen = len(response)
+                response = f"{plen}#{response}"
             elif command == "UserExist":
                 username = args
                 response = self.Cashit_db.user_exist(username)
+                response = str(response)
                 plen = len(response)
-                response = str(plen) + '#' + response
+                response = f"{plen}#{response}"
 
             elif command == "SaveSignupDetails":
                 username, password, email, id, sum = args
                 self.Cashit_db.save_user(username, password, email, id, sum)
-                response = True  # or any other value to indicate success
+                response = True
+                response = str(response)
+                plen = len(response)
+                response = f"{plen}#{response}"
 
             elif command == "ReadSignup":
                 username = args[0]
                 user_data = self.Cashit_db.get_user(username)
                 user_data = user_data
                 response = user_data
+                response = str(response)
                 plen = len(response)
-                response = str(plen) + '#' + response
+                response = f"{plen}#{response}"
 
             elif command == "permission":
-                username, amount, second_user = args
-                socket = dict[second_user]
-
-                encryped = self.fernet.encrypt(json.dumps(f"do you agree to recieve {amount} money from {username}").encode('utf-8'))
+                username, amount, second_user, transfor_name = args
+                print("here per")
+                socket = dict2[second_user]
+                print(socket)
+                encryped = self.fernet.encrypt(json.dumps(f"do you agree to {transfor_name} {amount} money from {username}").encode('utf-8'))
                 socket.send(encryped)
                 response = json.loads(self.fernet.decrypt(socket.recv(200000000)).decode('utf-8'))
+                response = str(response)
+                if response == "True":
+                    self.set_money(username, int(amount))
+                    self.set_money(second_user, -1 * int(amount))
+                plen = len(response)
+                response = f"{plen}#{response}"
+                print(response)
+
 
             encryped_response = self.fernet.encrypt(json.dumps(response).encode('utf-8'))
             conn.send(encryped_response)
         print(f"[SERVER] Connection with {addr} closed.")
         conn.close()
+
+    def handle_permission(self, conn, addr):
+        print("here")
+        data = self.fernet.decrypt(conn.recv(config.PACKET_SIZE)).decode('utf-8')
+        print("data", data)
+
+        command, args = json.loads(data)
+        print(f"[SERVER] Received command '{command}' with args {args} from {addr}.")
+        if command == "validate2":
+            username, password = args
+            dict2[username] = conn
+            print(dict2)
+            response = self.Cashit_db.validate_user(username, password)
+            response = str(response)
+            plen = len(response)
+            response = f"{plen}#{response}"
+            encryped_response = self.fernet.encrypt(json.dumps(response).encode('utf-8'))
+            conn.send(encryped_response)
 
     def get_my_money(self, username):
         """
@@ -149,7 +184,27 @@ class CashitServer:
             thread.start()
             print(f"[SERVER] Active connections: {threading.active_count() - 1}")
 
+    def validate2(self):
+        """
+        a function that validate the client from another port and saves the connnection in dict.
+        :return:
+        """
+        self.server2.bind((self.host, self.port2))
+        self.server2.listen()
+        print(f"[SERVER] Server started on {self.host}:{self.port2}.")
+
+        while True:
+            conn, addr = self.server2.accept()
+            print("conn, addr", conn, addr)
+            thread = threading.Thread(target=self.handle_permission, args=(conn, addr))
+            thread.start()
+            print(f"[SERVER] Active connections: {threading.active_count() - 1}")
+
 
 if __name__ == "__main__":
-    Cashit_server = CashitServer()
-    Cashit_server.start()
+    cashit_server = CashitServer()
+    thread1 = threading.Thread(target=cashit_server.start, args=())
+    thread1.start()
+    thread2 = threading.Thread(target=cashit_server.validate2, args=())
+    thread2.start()
+

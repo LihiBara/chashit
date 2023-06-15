@@ -90,7 +90,7 @@ class MainApp:
         self.cvv_entry = Entry(chargemoney_window)
         self.cvv_entry.pack()
 
-        current_money = int(CashitServer.get_my_money(self.username))
+        current_money = int(CashitServer.get_my_money(self.client, self.username))
 
         self.submitmoney_button = Button(chargemoney_window, text="Submit",
                                          command=lambda: CreditBank.charging(self.username, self.moneycharge_entry.get(), current_money))
@@ -135,7 +135,7 @@ class MainApp:
         """
         mymoney_window = Toplevel(self.root)
         mymoney_app = CashitMymoney(mymoney_window)
-        money = CashitServer.get_my_money(self.username)
+        money = CashitServer.get_my_money(self.client, self.username)
 
         label = Label(mymoney_window, text=f" You have {money} money in your account")
 
@@ -147,14 +147,16 @@ class MainApp:
         a function who is responsibale of the money transfer
         :return:
         """
+        transfor_name = "pass"
         self.second_user = self.username_entry.get()
         self.amount = self.money_entry.get()
-        if self.client.get_permission(self.username, self.amount, self.second_user) == 1:
-            CashitServer.set_money(self.username, int(self.amount))
-            CashitServer.set_money(self.second_user, -1 * int(self.amount))
+        if self.client.get_permission(self.username, self.amount, self.second_user, transfor_name) == "True":
+            #להעביר בתקשורת את הפרמטרים ולבצע את ההעברה מהסרבר
+            # CashitServer.set_money(self.username, int(self.amount))
+            # CashitServer.set_money(self.second_user, -1 * int(self.amount))
+            messagebox.showinfo("Success", "money transfersd succecfully.")
         else:
-            #לכתןב הודעה שלא אושר
-            pass
+            messagebox.showinfo("declined", "money  didnt transfersd.")
         self.recieve_window.destroy()
 
     def submit_pass(self):
@@ -162,13 +164,24 @@ class MainApp:
         a function who is responsibale of the money transfer
         :return:
         """
+        transfor_name = "recieve"
         self.second_user = self.username_entry.get()
         self.amount = self.money_entry.get()
-
-        CashitServer.set_money(self.second_user, int(self.amount))
-        CashitServer.set_money(self.username, -1 * int(self.amount))
-
-        self.passmoney_window.destroy()
+        if self.client.get_permission(self.second_user, self.amount, self.username, transfor_name) == "True":
+            #להעביר בתקשורת את הפרמטרים ולבצע את ההעברה מהסרבר
+            # CashitServer.set_money(self.username, int(self.amount))
+            # CashitServer.set_money(self.second_user, -1 * int(self.amount))
+            messagebox.showinfo("Success", "money transfersd succecfully.")
+        else:
+            messagebox.showinfo("declined", "money  didnt transfersd.")
+        # self.recieve_window.destroy()
+        # self.second_user = self.username_entry.get()
+        # self.amount = self.money_entry.get()
+        #
+        # CashitServer.set_money(self.second_user, int(self.amount))
+        # CashitServer.set_money(self.username, -1 * int(self.amount))
+        #
+        # self.passmoney_window.destroy()
 
     def on_click(self, username, root, txt):
         """
