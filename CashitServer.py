@@ -26,6 +26,7 @@ class CashitServer:
         self.port2 = config.SERVER_PORT2
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server3 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.Cashit_db = CashitDB()
         self.Cashit_db.create_tables()
         self.key = Fernet.generate_key()
@@ -91,7 +92,7 @@ class CashitServer:
                 print("here per")
                 socket = dict2[second_user]
                 print(socket)
-                encryped = self.fernet.encrypt(json.dumps(f"do you agree to {transfor_name} {amount} money from {username}").encode('utf-8'))
+                encryped = self.fernet.encrypt(json.dumps(f"do you agree to {transfor_name} {amount} money - {username}").encode('utf-8'))
                 socket.send(encryped)
                 response = json.loads(self.fernet.decrypt(socket.recv(200000000)).decode('utf-8'))
                 response = str(response)
@@ -200,6 +201,32 @@ class CashitServer:
             thread.start()
             print(f"[SERVER] Active connections: {threading.active_count() - 1}")
 
+    def handle_bank(self):
+        self.server3.bind((self.host, 9000))
+        self.server3.listen()
+        print(f"[SERVER] Server started on {self.host}:{9000}.")
+        while True:
+            conn, addr = self.server3.accept()
+            print("conn, addr", conn, addr)
+            thread = threading.Thread(target=lambda: self.charge_money(conn, addr))
+            thread.start()
+            print(f"[SERVER] Active connections: {threading.active_count() - 1}")
+
+
+    def charge_money(self, conn, addr):
+        data = conn.recv(config.PACKET_SIZE).decode('utf-8')
+        print("data", data)
+        command, args = json.loads(data)
+        username = command
+        print(f"[SERVER] '{command}' with  {args} new money.")
+        conn = CashitDB().create_connection()
+        updated_money = args
+        with conn:
+            query = "UPDATE users SET sum = ? WHERE username = ?"
+            result = conn.execute(query, (updated_money, username))
+            conn.commit()
+            # return result
+
 
 if __name__ == "__main__":
     cashit_server = CashitServer()
@@ -207,4 +234,6 @@ if __name__ == "__main__":
     thread1.start()
     thread2 = threading.Thread(target=cashit_server.validate2, args=())
     thread2.start()
+    thread3 = threading.Thread(target=cashit_server.handle_bank(), args=())
+    thread3.start()
 

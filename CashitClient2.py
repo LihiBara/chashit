@@ -166,7 +166,7 @@ class CashitClient:
         self.client2.send(encryped)
         print(encryped)
 
-    def get_permission(self, username, amount, second_user):
+    def get_permission(self, username, amount, second_user, transfor_name):
         """
         a function that gets a permission for a recieving or passing money from the other client
         throgh the server

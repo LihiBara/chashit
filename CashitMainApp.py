@@ -6,7 +6,6 @@ main_app
 from PIL import Image, ImageTk
 import base64
 
-import CreditBank
 from CashitClient import CashitClient
 import binascii
 from tkinter import filedialog
@@ -23,6 +22,9 @@ from tkinter import Toplevel
 
 from CashitDB import CashitDB
 from CashitServer import CashitServer
+import socket
+import json
+from cryptography.fernet import Fernet
 
 
 class MainApp:
@@ -31,6 +33,7 @@ class MainApp:
         self.username = username
         #self.client = CashitClient()
         self.client = client
+        self.client3 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.root = tk.Tk()
         self.root.title("cashit Main App")
         self.root.geometry("400x400")
@@ -48,6 +51,9 @@ class MainApp:
         """
         self.menu_frame = ttk.Frame(self.root)
         self.menu_frame.pack(pady=10)
+
+        self.username_label = Label(self.menu_frame, text=self.username)
+        self.username_label.grid(row=1, column=0, padx=5)
 
         self.passmoney_button = ttk.Button(self.menu_frame, text="pass money", command=self.open_passmoney)
         self.passmoney_button.grid(row=0, column=0, padx=5)
@@ -93,10 +99,33 @@ class MainApp:
         current_money = int(CashitServer.get_my_money(self.client, self.username))
 
         self.submitmoney_button = Button(chargemoney_window, text="Submit",
-                                         command=lambda: CreditBank.charging(self.username, self.moneycharge_entry.get(), current_money))
+                                         command=lambda: self.connect(self.username, self.moneycharge_entry.get(), current_money))
         self.submitmoney_button.pack(pady=5)
 
         chargemoney_window.grab_set()
+
+    def connect(self, username, amount, current_money):
+        """
+        Establishes a connection to the bank using socket.
+        """
+        try:
+            self.client3.connect(("127.0.0.1", 8081))
+            print("Connected to the server.")
+        except socket.error as err:
+            print("Error connecting to the server:", str(err))
+        encryped = (json.dumps((username, amount, current_money))).encode('utf-8')
+        self.client3.send(encryped)
+        # response = json.loads(self.client3.recv(20000)).decode('utf-8')
+        # print("1")
+        # response = str(response)
+        # if response == "10":
+        messagebox.showinfo("Success", "money charged")
+        # else:
+        #     messagebox.showerror("declined", "money  didnt charged.")
+
+
+
+
 
     def open_passmoney(self):
         """
@@ -156,7 +185,7 @@ class MainApp:
             # CashitServer.set_money(self.second_user, -1 * int(self.amount))
             messagebox.showinfo("Success", "money transfersd succecfully.")
         else:
-            messagebox.showinfo("declined", "money  didnt transfersd.")
+            messagebox.showerror("declined", "money  didnt transfersd.")
         self.recieve_window.destroy()
 
     def submit_pass(self):
@@ -195,6 +224,13 @@ class MainApp:
         self.username_label.pack()
         self.username_entry = Entry(root)
         self.username_entry.pack()
+
+        # self.choice_label = Label(self.root, text="Choose an option:")
+        # self.choice_label.pack()
+        # self.choice_var = StringVar(self.root)
+        # self.choice_var.set("Select")  # Set a default value
+        # self.choice_dropdown = OptionMenu(self.root, self.choice_var, CashitClient.dict_usernames[].keys())
+        # self.choice_dropdown.pack()
 
         self.money_label = Label(root, text="Enter money amount")
         self.money_label.pack()

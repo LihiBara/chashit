@@ -30,7 +30,7 @@ to do :
 3. asserts 
 4 fix bug , mtdetails after update 
 """
-
+dict_usernames = {}
 
 class CashitClient:
 
@@ -166,7 +166,7 @@ class CashitClient:
         self.client2.send(encryped)
         print(encryped)
 
-    def get_permission(self, username, amount, second_user , transfor_name):
+    def get_permission(self, username, amount, second_user, transfor_name):
         """
         a function that gets a permission for a recieving or passing money from the other client
         throgh the server
@@ -216,15 +216,16 @@ def listen_server(fernet, client2, event, special, regular, lock):
             if data:
                 permission_root = tk.Tk()
                 permission_root.title("cashit permission")
-                permission_root.geometry("300x300")
+                permission_root.geometry("500x300")
                 permission_root.configure(bg='light green')
-                permission_window = Toplevel(permission_root)
-                permission_label = Label(permission_window, text=data)
+                # permission_window = Toplevel(permission_root)
+                permission_label = Label(permission_root, text=data)
                 permission_label.pack()
-                yes_button = Button(permission_window, text="yes", command=lambda: permission_exepted(client2, fernet))
+                yes_button = Button(permission_root, text="yes", command=lambda: permission_exepted(client2, fernet))
                 yes_button.pack(pady=5)
-                no_button = Button(permission_window, text="no", command=lambda: permission_declined(client2, fernet))
+                no_button = Button(permission_root, text="no", command=lambda: permission_declined(client2, fernet))
                 no_button.pack(pady=5)
+                permission_root.grab_set()
                 permission_root.mainloop()
         finally:
             # lock.release()
@@ -292,6 +293,7 @@ class CashitLogin:
         if self.client.send_command("validate", username, password) == "True":
             #if self.client2.send_validate_port2("validate2", username, password) == "True":
             messagebox.showinfo("Success", "Logged in successfully.")
+            dict_usernames[username] = password
             self.root.destroy()
             #self.client.start1()
             main_app_window = CashitMainApp.MainApp(username, self.client)

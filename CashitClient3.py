@@ -225,7 +225,7 @@ def listen_server(fernet, client2, event, special, regular, lock):
                 yes_button.pack(pady=5)
                 no_button = Button(permission_window, text="no", command=lambda: permission_declined(client2, fernet))
                 no_button.pack(pady=5)
-                permission_window.grab_set()
+                permission_root.grab_set()
                 permission_root.mainloop()
         finally:
             # lock.release()
